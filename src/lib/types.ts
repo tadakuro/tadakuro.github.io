@@ -22,6 +22,7 @@ export interface AppEntry {
   updatedAt: string;
   downloads: number;
   featured: boolean;
+  verified?: boolean;
   releases: AppRelease[];
 }
 

@@ -109,6 +109,7 @@ export function makeApp(partial: Partial<AppEntry>): AppEntry {
     updatedAt: partial.updatedAt ?? now,
     downloads: partial.downloads ?? 0,
     featured: partial.featured ?? false,
+    verified: partial.verified ?? true,
     releases: partial.releases ??
       [
         {

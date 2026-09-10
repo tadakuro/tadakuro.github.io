@@ -1,16 +1,39 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { AppEntry, AppStoreData } from "@/lib/types";
 import { loadData } from "@/lib/store";
 import AppCard from "./AppCard";
-import { Search, ShieldCheck, X } from "lucide-react";
+import TopperBar from "./TopperBar";
+import { Search, X, ArrowDownWideNarrow } from "lucide-react";
 
-export default function AppExplorer() {
-  const [data, setData] = useState<AppStoreData | null>(null);
+type SortKey = "newest" | "popular" | "az";
+
+const sortOptions: { key: SortKey; label: string }[] = [
+  { key: "newest", label: "Newest" },
+  { key: "popular", label: "Most downloaded" },
+  { key: "az", label: "A–Z" }
+];
+
+function sortApps(apps: AppEntry[], sort: SortKey): AppEntry[] {
+  const copy = [...apps];
+  switch (sort) {
+    case "popular":
+      return copy.sort((a, b) => b.downloads - a.downloads);
+    case "az":
+      return copy.sort((a, b) => a.name.localeCompare(b.name));
+    case "newest":
+    default:
+      return copy.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  }
+}
+
+export default function AppExplorer({ initialData }: { initialData?: AppStoreData }) {
+  const [data, setData] = useState<AppStoreData | null>(initialData ?? null);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string | null>(null);
   const [featuredOnly, setFeaturedOnly] = useState(false);
+  const [sort, setSort] = useState<SortKey>("newest");
 
   useEffect(() => {
     let cancelled = false;
@@ -21,6 +44,14 @@ export default function AppExplorer() {
       cancelled = true;
     };
   }, []);
+
+  const counts = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const app of data?.apps ?? []) {
+      map.set(app.category, (map.get(app.category) ?? 0) + 1);
+    }
+    return map;
+  }, [data]);
 
   if (!data) {
     return (
@@ -44,10 +75,14 @@ export default function AppExplorer() {
     return haystack.includes(q);
   });
 
+  const sorted = sortApps(filtered, sort);
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col items-center gap-3">
-        <div className="relative w-full max-w-xl">
+      <TopperBar data={data} />
+
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+        <div className="relative w-full lg:max-w-xl">
           <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input
             type="search"
@@ -61,25 +96,52 @@ export default function AppExplorer() {
               type="button"
               onClick={() => setQuery("")}
               aria-label="Clear search"
-              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 transition hover:text-slate-600 dark:hover:text-slate-200"
             >
               <X className="h-4 w-4" />
             </button>
           )}
         </div>
+
+        <div className="flex items-center gap-1 self-end overflow-hidden rounded-xl border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900">
+          <ArrowDownWideNarrow className="h-4 w-4 pl-2.5 text-slate-400" />
+          {sortOptions.map((opt) => (
+            <button
+              key={opt.key}
+              type="button"
+              onClick={() => setSort(opt.key)}
+              className={
+                sort === opt.key
+                  ? "px-3 py-2 text-sm font-semibold text-primary-600 dark:text-primary-400"
+                  : "px-3 py-2 text-sm text-slate-500 transition hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+              }
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
           onClick={() => setCategory(null)}
           className={
             category === null
-              ? "rounded-full bg-primary-600 px-3.5 py-1.5 text-sm font-medium text-white"
-              : "rounded-full border border-slate-300 px-3.5 py-1.5 text-sm text-slate-600 hover:border-primary-400 hover:text-primary-600 dark:border-slate-700 dark:text-slate-300 dark:hover:text-primary-400"
+              ? "rounded-full bg-primary-600 px-3.5 py-1.5 text-sm font-medium text-white shadow-sm"
+              : "rounded-full border border-slate-300 bg-white px-3.5 py-1.5 text-sm text-slate-600 transition hover:border-primary-400 hover:text-primary-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:text-primary-400"
           }
         >
           All
+          <span
+            className={
+              category === null
+                ? "ml-1.5 text-primary-100"
+                : "ml-1.5 text-slate-400"
+            }
+          >
+            {data.apps.length}
+          </span>
         </button>
         {data.categories.map((c) => (
           <button
@@ -88,11 +150,18 @@ export default function AppExplorer() {
             onClick={() => setCategory(category === c ? null : c)}
             className={
               category === c
-                ? "rounded-full bg-primary-600 px-3.5 py-1.5 text-sm font-medium text-white"
-                : "rounded-full border border-slate-300 px-3.5 py-1.5 text-sm text-slate-600 hover:border-primary-400 hover:text-primary-600 dark:border-slate-700 dark:text-slate-300 dark:hover:text-primary-400"
+                ? "rounded-full bg-primary-600 px-3.5 py-1.5 text-sm font-medium text-white shadow-sm"
+                : "rounded-full border border-slate-300 bg-white px-3.5 py-1.5 text-sm text-slate-600 transition hover:border-primary-400 hover:text-primary-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:text-primary-400"
             }
           >
             {c}
+            <span
+              className={
+                category === c ? "ml-1.5 text-primary-100" : "ml-1.5 text-slate-400"
+              }
+            >
+              {counts.get(c) ?? 0}
+            </span>
           </button>
         ))}
         <button
@@ -100,29 +169,40 @@ export default function AppExplorer() {
           onClick={() => setFeaturedOnly((v) => !v)}
           className={
             featuredOnly
-              ? "inline-flex items-center gap-1.5 rounded-full bg-amber-500 px-3.5 py-1.5 text-sm font-medium text-white"
-              : "inline-flex items-center gap-1.5 rounded-full border border-slate-300 px-3.5 py-1.5 text-sm text-slate-600 hover:border-amber-400 hover:text-amber-600 dark:border-slate-700 dark:text-slate-300 dark:hover:text-amber-400"
+              ? "inline-flex items-center gap-1.5 rounded-full bg-amber-500 px-3.5 py-1.5 text-sm font-medium text-white shadow-sm"
+              : "inline-flex items-center gap-1.5 rounded-full border border-slate-300 bg-white px-3.5 py-1.5 text-sm text-slate-600 transition hover:border-amber-400 hover:text-amber-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:text-amber-400"
           }
         >
-          <ShieldCheck className="h-4 w-4" /> Featured
+          ★ Featured
         </button>
       </div>
 
-      <div className="flex items-center justify-between text-sm text-slate-500 dark:text-slate-400">
-        <p>
-          {filtered.length} {filtered.length === 1 ? "app" : "apps"}
+      <div className="flex items-center justify-between border-b border-slate-200 pb-3 text-sm text-slate-500 dark:border-slate-800 dark:text-slate-400">
+        <p className="font-medium">
+          {sorted.length} {sorted.length === 1 ? "app" : "apps"}
         </p>
+        {query && (
+          <button
+            type="button"
+            onClick={() => setQuery("")}
+            className="text-primary-600 hover:underline dark:text-primary-400"
+          >
+            Clear search
+          </button>
+        )}
       </div>
 
-      {filtered.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-300 py-16 text-center text-slate-500 dark:border-slate-700 dark:text-slate-400">
-          <p className="text-lg font-medium">No apps found</p>
-          <p className="mt-1 text-sm">Try a different search or category.</p>
+      {sorted.length === 0 ? (
+        <div className="animate-fade-up rounded-2xl border border-dashed border-slate-300 bg-white py-20 text-center dark:border-slate-700 dark:bg-slate-900">
+          <p className="text-lg font-semibold text-slate-600 dark:text-slate-300">
+            No apps found
+          </p>
+          <p className="mt-1 text-sm text-slate-400">Try a different search or category.</p>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((app) => (
-            <AppCard key={app.id} app={app} />
+        <div className="stagger grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {sorted.map((app, i) => (
+            <AppCard key={app.id} app={app} index={i} />
           ))}
         </div>
       )}

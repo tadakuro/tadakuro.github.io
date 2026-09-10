@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "predev": "node scripts/gen-admin-key.mjs",
+    "prebuild": "node scripts/gen-admin-key.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
