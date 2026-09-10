@@ -1,0 +1,32 @@
+{
+  "siteTitle": "My App Store",
+  "siteTagline": "My own apps, straight from the source.",
+  "categories": ["Tools", "Games", "Utilities"],
+  "apps": [
+    {
+      "id": "sample-tool-001",
+      "slug": "example-tool",
+      "name": "Example Tool",
+      "tagline": "A small sample tool to show how apps look on the store.",
+      "description": "This is an example entry that ships with your store. Replace it (or delete it) with your own apps from the admin panel.",
+      "icon": "/icons/example.png",
+      "screenshots": [],
+      "category": "Tools",
+      "tags": ["sample", "demo"],
+      "developer": "You",
+      "latestVersion": "1.0.0",
+      "size": "2.4 MB",
+      "updatedAt": "2026-09-10",
+      "downloads": 128,
+      "featured": true,
+      "releases": [
+        {
+          "version": "1.0.0",
+          "date": "2026-09-10",
+          "size": "2.4 MB",
+          "changelog": ["Initial release."]
+        }
+      ]
+    }
+  ]
+}
