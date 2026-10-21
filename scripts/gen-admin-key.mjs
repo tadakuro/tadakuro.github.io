@@ -1,4 +1,4 @@
-import { randomBytes, scryptSync } from "node:crypto";
+import { randomBytes, pbkdf2Sync } from "node:crypto";
 import { writeFileSync, mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -14,7 +14,7 @@ let salt = randomBytes(16).toString("hex");
 let hash;
 
 if (enabled) {
-  const derived = scryptSync(password, salt, 32, { N: 16384, r: 8, p: 1 });
+  const derived = pbkdf2Sync(password, Buffer.from(salt, "hex"), 150000, 32, "sha256");
   hash = derived.toString("hex");
   console.log("[admin] key generated; panel ENABLED.");
 } else {
